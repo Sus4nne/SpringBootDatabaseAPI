@@ -1,15 +1,17 @@
 package nl.innovate.databaseAPI.controller;
 
+import nl.innovate.databaseAPI.exceptions.ConflictException;
+import nl.innovate.databaseAPI.exceptions.ResourceNotFoundException;
 import nl.innovate.databaseAPI.model.Statistic;
 import nl.innovate.databaseAPI.model.Total;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.HttpClientErrorException;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @Transactional
@@ -17,6 +19,36 @@ public class StatisticService {
 
     @Autowired
     private StatisticRepository repository;
+
+    public Statistic findStatisticById(Integer id) {
+        Optional<Statistic> statisticOptional = repository.findById(id);
+        if (!statisticOptional.isPresent()) {
+            throw new ResourceNotFoundException("Statistic not found with id " + id);
+        }
+        Statistic statistic = statisticOptional.get();
+        return statistic;
+    }
+
+    public Statistic postStatistic(Statistic statistic) {
+        if (statistic == null) {
+            System.out.println("bad request");
+        }
+        return repository.save(statistic);
+    }
+
+    public Statistic putStatistic(Integer id, Statistic statistic) {
+        if (!id.equals(statistic.getId())) {
+            throw new ConflictException("Id " + id + " does not match the id of the Statistic.");
+        }
+        Statistic target = findStatisticById(id);
+        target.replaceRecord(statistic);
+        return repository.save(target);
+    }
+
+    public void deleteStatistic(Integer id) {
+        Statistic target = findStatisticById(id);
+        repository.delete(target);
+    }
 
     public Total getTotalsCurrentYear() {
         int year = LocalDate.now().getYear();
